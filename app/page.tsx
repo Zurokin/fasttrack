@@ -11,6 +11,7 @@ import { useFastingTimer } from "@/hooks/useFastingTimer";
 import type { HistoryEntry, Session } from "@/types";
 import { PhaseCard } from "@/components/PhaseCard";
 import { PhaseTimeline } from "@/components/PhaseTimeline";
+import { Heatmap } from "@/components/Heatmap";
 
 export default function Home() {
   const [activePlan, setActivePlan] = useLocalStorage<number>("ft.plan", 16);
@@ -137,6 +138,7 @@ export default function Home() {
         </div>
 
         <StatsGrid totalHours={totalHours} sessions={history.length} />
+        <Heatmap history={history} />
         <HistoryList items={history} />
       </div>
     </div>
