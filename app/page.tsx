@@ -12,6 +12,9 @@ import type { HistoryEntry, Session } from "@/types";
 import { PhaseCard } from "@/components/PhaseCard";
 import { PhaseTimeline } from "@/components/PhaseTimeline";
 import { Heatmap } from "@/components/Heatmap";
+import { Achievements } from "@/components/Achievements";
+import { AchievementToast } from "@/components/AchievementToast";
+import { useAchievements } from "@/hooks/useAchievements";
 
 export default function Home() {
   const [activePlan, setActivePlan] = useLocalStorage<number>("ft.plan", 16);
@@ -27,6 +30,8 @@ export default function Home() {
   const { phase, remainingMs, progress, elapsedHours } =
     useFastingTimer(session);
   const totalHours = history.reduce((sum, h) => sum + h.duration, 0);
+
+  const { justUnlocked } = useAchievements(history);
 
   // Уведомление об окончании голодания
   useEffect(() => {
@@ -139,7 +144,10 @@ export default function Home() {
 
         <StatsGrid totalHours={totalHours} sessions={history.length} />
         <Heatmap history={history} />
+        <Achievements history={history} />
         <HistoryList items={history} />
+
+        <AchievementToast ids={justUnlocked} />
       </div>
     </div>
   );
