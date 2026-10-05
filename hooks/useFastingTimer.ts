@@ -7,7 +7,8 @@ import { PLANS } from "@/lib/plans";
 interface TimerState {
   phase: Phase;
   remainingMs: number;
-  progress: number; // 0..1
+  progress: number;
+  elapsedHours: number; // ← НОВОЕ
 }
 
 export function useFastingTimer(session: Session | null): TimerState {
@@ -25,10 +26,11 @@ export function useFastingTimer(session: Session | null): TimerState {
   }, [session]);
 
   if (!session) {
-    return { phase: "fasting", remainingMs: 0, progress: 0 };
+    return { phase: "fasting", remainingMs: 0, progress: 0, elapsedHours: 0 };
   }
 
   const elapsed = now - session.startTime;
+  const elapsedHours = elapsed / 3600_000;
   const fastMs = session.planHours * 3600_000;
   const eatMs = (PLANS[session.planHours]?.eat ?? 8) * 3600_000;
 
@@ -37,6 +39,7 @@ export function useFastingTimer(session: Session | null): TimerState {
       phase: "fasting",
       remainingMs: fastMs - elapsed,
       progress: elapsed / fastMs,
+      elapsedHours,
     };
   }
 
@@ -46,8 +49,9 @@ export function useFastingTimer(session: Session | null): TimerState {
       phase: "eating",
       remainingMs: eatMs - eatElapsed,
       progress: 1,
+      elapsedHours,
     };
   }
 
-  return { phase: "done", remainingMs: 0, progress: 1 };
+  return { phase: "done", remainingMs: 0, progress: 1, elapsedHours };
 }

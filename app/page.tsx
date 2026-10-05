@@ -9,6 +9,8 @@ import { HistoryList } from "@/components/HistoryList";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useFastingTimer } from "@/hooks/useFastingTimer";
 import type { HistoryEntry, Session } from "@/types";
+import { PhaseCard } from "@/components/PhaseCard";
+import { PhaseTimeline } from "@/components/PhaseTimeline";
 
 export default function Home() {
   const [activePlan, setActivePlan] = useLocalStorage<number>("ft.plan", 16);
@@ -21,7 +23,9 @@ export default function Home() {
     [],
   );
 
-  const { phase, remainingMs, progress } = useFastingTimer(session);
+  const { phase, remainingMs, progress, elapsedHours } =
+    useFastingTimer(session);
+  const totalHours = history.reduce((sum, h) => sum + h.duration, 0);
 
   // Уведомление об окончании голодания
   useEffect(() => {
@@ -93,8 +97,6 @@ export default function Home() {
     return s;
   }, [history]);
 
-  const totalHours = history.reduce((sum, h) => sum + h.duration, 0);
-
   return (
     <div className="min-h-screen p-4 flex justify-center">
       <div className="w-full max-w-md">
@@ -112,6 +114,8 @@ export default function Home() {
             remainingMs={remainingMs}
             progress={progress}
           />
+          {session && <PhaseCard elapsedHours={elapsedHours} />}
+          <PhaseTimeline elapsedHours={elapsedHours} />
 
           <div className="px-6 pb-6">
             {!session ? (
