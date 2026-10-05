@@ -15,6 +15,7 @@ import { Heatmap } from "@/components/Heatmap";
 import { Achievements } from "@/components/Achievements";
 import { AchievementToast } from "@/components/AchievementToast";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useAchievementSound } from "@/hooks/useSound";
 
 export default function Home() {
   const [activePlan, setActivePlan] = useLocalStorage<number>("ft.plan", 16);
@@ -31,7 +32,14 @@ export default function Home() {
     useFastingTimer(session);
   const totalHours = history.reduce((sum, h) => sum + h.duration, 0);
 
-  const { justUnlocked } = useAchievements(history);
+  const { unlocked, records, justUnlocked } = useAchievements(history);
+  const playAchievementSound = useAchievementSound();
+
+  useEffect(() => {
+    if (justUnlocked.length > 0) {
+      playAchievementSound();
+    }
+  }, [justUnlocked, playAchievementSound]);
 
   // Уведомление об окончании голодания
   useEffect(() => {
@@ -144,7 +152,7 @@ export default function Home() {
 
         <StatsGrid totalHours={totalHours} sessions={history.length} />
         <Heatmap history={history} />
-        <Achievements history={history} />
+        <Achievements history={history} unlocked={unlocked} records={records} />
         <HistoryList items={history} />
 
         <AchievementToast ids={justUnlocked} />

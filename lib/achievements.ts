@@ -5,32 +5,18 @@ export interface Achievement {
   emoji: string;
   title: string;
   description: string;
-  /** Проверка: открыто ли */
+  secret?: boolean;
   check: (history: HistoryEntry[]) => boolean;
-  /** Для незакрытых — прогресс 0..1 + текст «3/7» */
   progress?: (history: HistoryEntry[]) => { done: number; total: number };
 }
 
 // ==== утилиты ====
 const totalHours = (h: HistoryEntry[]) => h.reduce((s, x) => s + x.duration, 0);
+
 const maxSession = (h: HistoryEntry[]) =>
   h.length ? Math.max(...h.map((x) => x.duration)) : 0;
-const sessionCount = (h: HistoryEntry[]) => h.length;
 
-/** Кол-во дней подряд с сессией, начиная с сегодня (или вчера) */
-function currentStreak(history: HistoryEntry[]): number {
-  const days = new Set(history.map((h) => h.date));
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < 3650; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    if (days.has(key)) streak++;
-    else if (i > 0) break;
-  }
-  return streak;
-}
+const sessionCount = (h: HistoryEntry[]) => h.length;
 
 /** Самый длинный стрик за всё время */
 function bestStreak(history: HistoryEntry[]): number {
@@ -42,8 +28,9 @@ function bestStreak(history: HistoryEntry[]): number {
     const prev = new Date(days[i - 1]);
     const next = new Date(days[i]);
     const diff = (next.getTime() - prev.getTime()) / 86400000;
-    if (diff === 1) cur++;
-    else {
+    if (diff === 1) {
+      cur++;
+    } else {
       best = Math.max(best, cur);
       cur = 1;
     }
@@ -54,6 +41,28 @@ function bestStreak(history: HistoryEntry[]): number {
 /** Кол-во сессий с планом N часов (или больше) */
 const sessionsWithPlan = (h: HistoryEntry[], hours: number) =>
   h.filter((x) => x.planned >= hours).length;
+
+/** Сессии, начатые в диапазоне часов суток (например 22–6 — через полночь) */
+function sessionsStartedAtHour(
+  history: HistoryEntry[],
+  fromHour: number,
+  toHour: number,
+): number {
+  return history.filter((h) => {
+    const start = new Date(h.endTime - h.duration * 3600_000);
+    const hour = start.getHours();
+    if (fromHour <= toHour) return hour >= fromHour && hour < toHour;
+    return hour >= fromHour || hour < toHour;
+  }).length;
+}
+
+/** Сессий в конкретный день недели (0=Вс, 6=Сб) */
+function sessionsOnWeekday(history: HistoryEntry[], weekday: number): number {
+  return history.filter((h) => {
+    const d = new Date(h.date);
+    return d.getDay() === weekday;
+  }).length;
+}
 
 // ==== Список достижений ====
 export const ACHIEVEMENTS: Achievement[] = [
@@ -199,6 +208,47 @@ export const ACHIEVEMENTS: Achievement[] = [
     progress: (h) => ({
       done: Math.min(Math.floor(totalHours(h)), 1000),
       total: 1000,
+    }),
+  },
+  // === секретные ===
+  {
+    id: "night-watch",
+    emoji: "🌙",
+    title: "Ночной дозор",
+    description: "Начни голодание после 22:00",
+    secret: true,
+    check: (h) => sessionsStartedAtHour(h, 22, 6) >= 1,
+  },
+  {
+    id: "early-bird",
+    emoji: "🌅",
+    title: "Ранняя птица",
+    description: "Начни голодание до 6 утра",
+    secret: true,
+    check: (h) => sessionsStartedAtHour(h, 4, 6) >= 1,
+  },
+  {
+    id: "weekend-warrior",
+    emoji: "🎉",
+    title: "Воин выходного дня",
+    description: "5 сессий в субботу или воскресенье",
+    secret: true,
+    check: (h) => sessionsOnWeekday(h, 6) + sessionsOnWeekday(h, 0) >= 5,
+    progress: (h) => ({
+      done: Math.min(sessionsOnWeekday(h, 6) + sessionsOnWeekday(h, 0), 5),
+      total: 5,
+    }),
+  },
+  {
+    id: "marathon-man",
+    emoji: "🦾",
+    title: "Железный человек",
+    description: "10 сессий по 18+ часов",
+    secret: true,
+    check: (h) => sessionsWithPlan(h, 18) >= 10,
+    progress: (h) => ({
+      done: Math.min(sessionsWithPlan(h, 18), 10),
+      total: 10,
     }),
   },
 ];

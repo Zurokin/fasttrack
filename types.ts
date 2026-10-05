@@ -18,3 +18,8 @@ export interface Plan {
   eat: number;
   label: string;
 }
+
+export interface AchievementRecord {
+  id: string;
+  unlockedAt: number;
+}
